@@ -41,10 +41,6 @@ export class RedisService {
     reNewFileReadingExperationTime(key:string, value: string, experationTime: number){
         // renew the experation time
         this.cacheService.set(key,value,experationTime)
-        // this.redisClient.set(SHOULD_READ_FROM_FILE, true, 'EX',EXPERATION_TIME,((err,data)=>{
-        //     console.log(data);
-            
-        // }));
     }
     writeDataToCache(key: string,data:StockEntity[]){
         this.redisClient.lpush(key, JSON.stringify(data), function(err, data) {
