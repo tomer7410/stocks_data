@@ -71,7 +71,7 @@ export class RedisService {
                 this.redisClient.ttl(EXPERATION_KEY,(async(err, timetoLive) => {
                     if(!err){
                         let stocksFromFile = null
-                        if(timetoLive<= 0){
+                        if(timetoLive<= 0){ // read from file only 1 per 3 hour
                            // renew experation time
                            this.reNewFileReadingExperationTime(EXPERATION_KEY,EXPERATION_VALUE,EXPERATION_TIME)
                             stocksFromFile = await this.readStocksDataFromFile()
