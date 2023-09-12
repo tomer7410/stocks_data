@@ -1,16 +1,12 @@
-import { HttpException, HttpStatus, Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { StockEntity } from './entities/stockDto';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
 import { sortCallbackFunction } from 'src/utils/sortCallback';
 import { HttpService } from '@nestjs/axios'
 import {  map } from 'rxjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Stock } from './models/location.schema';
 import { Model } from 'mongoose';
-import { RedisCache, RedisClient } from '../redis/interfaces/redis.interface';
-import { readFile } from 'fs';
-import { EXPERATION_TIME, JSON_FILE_DIR, LIST_KEY, SHOULD_READ_FROM_FILE } from 'src/utils/const';
+
 import { RedisService } from 'src/redis/redis.service';
 @Injectable()
 export class StocksService {
@@ -42,7 +38,7 @@ export class StocksService {
         // }
         // return this.connection.query( `Select * from STOCKS where name in ${stockNames}`);
     }
-    
+
     //searching the most updated record 
     getMostUpdateRecord(stockRecords: StockEntity[]){
 
