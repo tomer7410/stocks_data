@@ -18,6 +18,7 @@ export class StocksService {
     constructor(
         @Inject(CACHE_MANAGER) private cacheService: RedisCache,
         @InjectModel(Stock.name) private stockModel: Model<Stock>,
+        // @InjectConnection() private readonly sqlConnection: Connection
         private readonly httpService: HttpService
         ){
             this.redisClient = this.cacheService.store.getClient();
@@ -66,7 +67,14 @@ export class StocksService {
         }
         return this.stockModel.find({
             'name':{$in:stockNames}
-        }).exec()   
+        }).exec() 
+
+        ////////////////
+        //sql version
+        // if(!stockNames.length){
+        //    return this.connection.query('SELECT * FROM STOCKS;');
+        // }
+        // return this.connection.query( `Select * from STOCKS where name in ${stockNames}`);
     }
 
     // handling whatever we should read from file agaiin or not 
