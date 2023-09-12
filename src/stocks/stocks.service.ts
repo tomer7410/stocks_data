@@ -8,57 +8,23 @@ import {  map } from 'rxjs';
 import { InjectModel } from '@nestjs/mongoose';
 import { Stock } from './models/location.schema';
 import { Model } from 'mongoose';
-import { RedisCache, RedisClient } from './interfaces/redis.interface';
+import { RedisCache, RedisClient } from '../redis/interfaces/redis.interface';
 import { readFile } from 'fs';
-import { resolve } from 'path';
-import { EXPERATION_TIME, JSON_FILE_DIR, REDIS_FLAG } from 'src/utils/const';
+import { EXPERATION_TIME, JSON_FILE_DIR, LIST_KEY, SHOULD_READ_FROM_FILE } from 'src/utils/const';
+import { RedisService } from 'src/redis/redis.service';
 @Injectable()
 export class StocksService {
-    private redisClient: RedisClient;
     constructor(
-        @Inject(CACHE_MANAGER) private cacheService: RedisCache,
+        private readonly redisService: RedisService,
         @InjectModel(Stock.name) private stockModel: Model<Stock>,
         // @InjectConnection() private readonly sqlConnection: Connection
         private readonly httpService: HttpService
-        ){
-            this.redisClient = this.cacheService.store.getClient();
-            this.handleOnInit()
-            
-        }
-    handleOnInit(){
-        //read fron json file when the server is up 
-        this.readStocksDataFromFile().then((stocks:StockEntity[])=>{
-            this.redisClient.lpush("stocks", JSON.stringify(stocks), function(err, data) {
-                if (err) throw new Error('cannot push to redis');
-                console.log('data write to redis'); 
-            });
-            // flag to read from file every 3 hours
-            this.writeFlagToRedis()
-            
-        })
-    }
+        ){}
+
     async getAllStocksPrices(names?: string): Promise<Array<number>> {
         const stockNames = names?.split(',') || []
         return await this.fetchStocksFromResources(stockNames)
     }
-
-    writeFlagToRedis(){
-        // renew the experation time
-        this.redisClient.set(REDIS_FLAG, true, 'EX',EXPERATION_TIME,((err,data)=>{
-            console.log(data);
-            
-        }));
-    }
-    readStocksDataFromFile():Promise< StockEntity[]>{
-        return new Promise((resolve,reject)=>{
-            readFile(process.cwd()+JSON_FILE_DIR,async(err,data)=>{
-                if(err) resolve([]);
-                resolve(JSON.parse(data.toString()) as StockEntity[]) 
-            })
-        })
-        
-    }
-
     // read from db
     async getStockDataFromDb(stockNames: string[]){
         
@@ -76,28 +42,7 @@ export class StocksService {
         // }
         // return this.connection.query( `Select * from STOCKS where name in ${stockNames}`);
     }
-
-    // handling whatever we should read from file agaiin or not 
-    async handleFileReading(){
-        return new Promise((resolve, reject)=>{
-            this.redisClient.ttl('shouldRead',(async(err, timetoLive) => {
-                if(!err){
-                    let stocksFromFile = null
-                    if(timetoLive<= 0){
-                       // renew experation time
-                        this.writeFlagToRedis()
-                        stocksFromFile = await this.readStocksDataFromFile()
-                        resolve(stocksFromFile as StockEntity[])
-                    }
-                    resolve([] as StockEntity[])
-                }
-              }))
-            })
-        
-        
-        
-
-    }
+    
     //searching the most updated record 
     getMostUpdateRecord(stockRecords: StockEntity[]){
 
@@ -120,7 +65,8 @@ export class StocksService {
         const sortedDatafromResources = datafromResources.map((data:Array<StockEntity>)=>data.sort(sortCallbackFunction)) //sorting list from each resource
         const namesIterator = stockNames.length > 0 ? stockNames : sortedDatafromResources[0].map(v=>v.name) //whatever is all the stocks name or just few
 
-        //for each required stock for each found stock by resource, find the most updated record complexity = nOfrequiredStock * nOfresource * log(n stocks) * (g found records)
+        //for each required stock for each found stock by resource, find the most updated record;
+        // complexity = nOfrequiredStock * nOfresource * log(n stocks) * (g found records)
         return namesIterator.reduce((acc,currentName:string,index: Number)=>{
             const sameDataFromOtherResources = sortedDatafromResources.reduce((acc1,currentSortedResource)=>{
                 const stock = this.binarySearch(currentSortedResource,currentName)
@@ -138,7 +84,7 @@ export class StocksService {
     async fetchStocksFromResources(stockNames:string[]){ // fetching data from each resources
         const dataFromAmazonPromise = this.getStockDataFromAmazon() 
         const dataFromDbPromise = this.getStockDataFromDb(stockNames)
-        const dataFromFilePromise = this.handleFileReading()
+        const dataFromFilePromise = this.redisService.handleFileReading()
         const promisesArr = [dataFromAmazonPromise, dataFromDbPromise,dataFromFilePromise]
         const resourcesData = (await Promise.all(promisesArr)) as Array<Array<StockEntity>>
 
