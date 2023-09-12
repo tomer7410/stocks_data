@@ -12,6 +12,9 @@ export class RedisService {
     constructor( @Inject(CACHE_MANAGER) private cacheService: RedisCache,) {
         this.redisClient = this.cacheService.store.getClient();
         this.handleOnInit()
+        this.redisClient.on('error', (error) =>  {
+            console.info(error);
+        });
     }
     handleOnInit(){
         //read fron json file when the server is up 
@@ -45,7 +48,7 @@ export class RedisService {
     writeDataToCache(key: string,data:StockEntity[]){
         this.redisClient.lpush(key, JSON.stringify(data), function(err, data) {
             if (err) throw new Error('cannot push to redis');
-            console.log('data write to redis'); 
+            console.log('data write to redis') 
         });
     }
     readDataFromCache(key: string){
