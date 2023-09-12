@@ -1,0 +1,12 @@
+architecture attitude description:
+
+my first attitude of the architecture was to compere the stock data between the cache resource and the db resource and return to the client.
+ 
+the caching data would updated by consuming from topic and write the more updated records (between the current cache and the new kafka message)
+the producing data will produce by fetching  the data from amazon cloud and json file and produce in once in 10 min or 3 hours respectively
+.
+eventually in real time, per client request the data should compered by the db and the redis caching, and it not so helpful.
+
+i decided to compare between the entire resources per client request in real time
+
+

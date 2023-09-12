@@ -9,3 +9,4 @@
 *all the nework config is in the .env file*
 
 *there is a diagram described in ./diagram.png*
+*there is an architecture description on ./coding_attitude.txt
